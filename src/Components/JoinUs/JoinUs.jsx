@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Container } from "@mui/material";
-import { db, storage } from "../../../Firebaseconfig"; // Import from firebaseConfig.js
-import { collection, doc, setDoc, deleteDoc } from "firebase/firestore";
+import { db, storage } from "../../../Firebaseconfig";
+import { collection, doc, setDoc, deleteDoc, getDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import React from "react";
 import Frame from "../../assets/Star.png";
@@ -10,10 +10,9 @@ import emailjs from "@emailjs/browser";
 function JoinUs() {
   const [alertpop, setAlertpop] = useState(false);
 
-  // Inside your component
   useEffect(() => {
     const timer = setTimeout(() => {
-      setAlertpop(true); // Show alert after 10 seconds
+      setAlertpop(true); // Show alert after 4 seconds
     }, 4000);
     // Clean up the timer when the component unmounts
     return () => clearTimeout(timer);
@@ -27,6 +26,7 @@ function JoinUs() {
     profileLink: "",
     role: "",
     resumeLink: "",
+    source: "", // Added missing source field
     resume: null,
   });
 
@@ -44,27 +44,6 @@ function JoinUs() {
       setErrors((prevErrors) => ({ ...prevErrors, [name]: "" }));
     }
   };
-
-  // const handleFileChange = (e) => {
-  //   const file = e.target.files[0];
-  //   setFileError("");
-  //   setFileName("");
-
-  //   if (!file) return;
-
-  //   if (file.type !== "application/pdf") {
-  //     setFileError("Only PDF files are allowed");
-  //     return;
-  //   }
-
-  //   if (file.size > MAX_FILE_SIZE) {
-  //     setFileError("File size must be less than 5MB");
-  //     return;
-  //   }
-
-  //   setFormData({ ...formData, resume: file });
-  //   setFileName(file.name);
-  // };
 
   const validateForm = () => {
     const newErrors = {};
@@ -102,6 +81,7 @@ function JoinUs() {
     ) {
       newErrors.profileLink = "Please enter a valid URL";
     }
+    
     if (!formData.resumeLink.trim()) {
       newErrors.resumeLink = "Resume link is required";
     } else if (
@@ -120,38 +100,45 @@ function JoinUs() {
       newErrors.source = "Please select an option";
     }
 
-    if (!formData.resume) {
-      setFileError("Please upload your resume");
-    }
-
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0 && !fileError;
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const checkExistingApplication = async (email) => {
+    try {
+      // Check if email already exists in applications collection
+      const querySnapshot = await getDoc(doc(db, "applications", formData.name.trim()));
+      if (querySnapshot.exists()) {
+        return true; // Application already exists
+      }
+      return false;
+    } catch (error) {
+      console.error("Error checking existing application:", error);
+      return false;
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitStatus(null);
 
-    if (!formData.resume) {
-      setFileError("Please upload your resume");
-    }
-
     if (!validateForm()) {
       return;
     }
 
+    setIsSubmitting(true);
+
     try {
-      // // 1. Upload PDF to Firebase Storage
-      // const storageRef = ref(
-      //   storage,
-      //   `resumes/${Date.now()}_${formData.resume.name}`
-      // );
-      // const uploadResult = await uploadBytes(storageRef, formData.resume);
+      // Check if application already exists
+      const applicationExists = await checkExistingApplication(formData.email);
+      
+      if (applicationExists) {
+        // Show duplicate submission error
+        setSubmitStatus("duplicate");
+        return;
+      }
 
-      // 2. Get the download URL
-      // const downloadURL = await getDownloadURL(uploadResult.ref);
-
-      // 3. Save form data and resume URL to Firestore
+      // Save form data to Firestore
       const docRef = doc(db, "applications", formData.name.trim());
       await setDoc(docRef, {
         name: formData.name,
@@ -161,11 +148,12 @@ function JoinUs() {
         profileLink: formData.profileLink,
         role: formData.role,
         resumeLink: formData.resumeLink,
-        // resumeURL: downloadURL,
+        source: formData.source, // Added source field
         submittedAt: new Date(),
       });
 
-      console.log("Document written with ID: ", docRef.id, FormData.name);
+      console.log("Document written with ID: ", docRef.id);
+      
       // EmailJS Config
       const serviceID = "service_ndlmhll";
       const templateID = "template_7p271j8";
@@ -179,32 +167,30 @@ function JoinUs() {
         profileLink: formData.profileLink,
         role: formData.role,
         resumeLink: formData.resumeLink,
+        source: formData.source, // Added source field
       };
 
-      setIsSubmitting(true); // Set isSubmitting to true before submission
+      await emailjs.send(serviceID, templateID, templateParams, publicKey);
+      console.log("Email sent successfully");
+      
+      setSubmitStatus("success");
 
-      emailjs
-        .send(serviceID, templateID, templateParams, publicKey)
-        .then((response) => {
-          console.log("SUCCESS!", response.status, response.text);
-          setSubmitStatus("success");
-
-          // Reset form
-          setFormData({
-            name: "",
-            email: "",
-            mobile: "",
-            whyWebortex: "",
-            profileLink: "",
-            role: "",
-            resumeLink: "",
-            // resume: null,
-          });
-          setErrors({});
-        });
-
+      // Reset form
+      setFormData({
+        name: "",
+        email: "",
+        mobile: "",
+        whyWebortex: "",
+        profileLink: "",
+        role: "",
+        resumeLink: "",
+        source: "",
+        resume: null,
+      });
+      setErrors({});
       setFileName("");
       setFileError("");
+      
     } catch (error) {
       console.error("Error submitting form: ", error);
       setSubmitStatus("error");
@@ -229,7 +215,8 @@ function JoinUs() {
       profileLink: "",
       role: "",
       resumeLink: "",
-      // resume: null,
+      source: "",
+      resume: null,
     });
     setErrors({});
     setFileName("");
@@ -311,6 +298,42 @@ function JoinUs() {
         </div>
       )}
 
+      {submitStatus === "duplicate" && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-brandsBgColor p-6 rounded-lg shadow-lg max-w-md w-full">
+            <div className="text-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-16 w-16 text-yellow-500 mx-auto mb-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+              <h2 className="text-2xl font-normal text-white mb-2">
+                Already Applied
+              </h2>
+              <p className="text-white/80 font-light px-[5%] mb-4">
+                It looks like you've already submitted an application with these details. 
+                We'll be in touch with you soon regarding your application.
+              </p>
+              <button
+                onClick={() => setSubmitStatus(null)}
+                className="px-4 py-2 bg-yellow-500/90 text-white rounded hover:bg-white/80 hover:text-brandsBgColor transition-all duration-300 ease-in-out my-2 w-[55%]"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <button
         onClick={handleWhatsApp}
         className="absolute top-[0%] right-[22%] px-4 py-2 text-sm text-gray-300 rounded bg-brandsBgColor hover:bg-brandsBgColor/60 transition-colors"
@@ -379,7 +402,7 @@ function JoinUs() {
                 type="tel"
                 id="mobile"
                 name="mobile"
-                placeholder="+91"
+                placeholder="Enter 10 digit mobile number"
                 className={`w-full px-5 py-4 rounded-[11px] font-poppins text-sm md:text-base bg-[#1e1f23] text-white placeholder-[#8692A6] focus:outline-none border-[.9px] ${
                   errors.mobile ? "border-red-500" : "border-[#8692A6]/40"
                 }`}
@@ -404,8 +427,9 @@ function JoinUs() {
               name="whyWebortex"
               rows="4"
               className={`w-full px-5 py-4 rounded-[11px] font-poppins text-sm md:text-base bg-[#1e1f23] text-white placeholder-[#8692A6] focus:outline-none focus:ring-0 focus:border-[#8692A6]/80 border-[.9px] ${
-                errors.description ? "border-red-500" : "border-[#8692A6]/40"
+                errors.whyWebortex ? "border-red-500" : "border-[#8692A6]/40"
               }`}
+              placeholder="Tell us why you want to join Webortex (min 20 characters)"
               value={formData.whyWebortex}
               onChange={handleInputChange}
             />
@@ -426,8 +450,9 @@ function JoinUs() {
               id="profileLink"
               name="profileLink"
               className={`w-full px-5 py-4 rounded-[11px] font-poppins text-sm md:text-base bg-[#1e1f23] text-white placeholder-[#8692A6] focus:outline-none focus:ring-0 focus:border-[#8692A6]/80 border-[.9px] ${
-                errors.name ? "border-red-500" : "border-[#8692A6]/40"
+                errors.profileLink ? "border-red-500" : "border-[#8692A6]/40"
               }`}
+              placeholder="Enter your LinkedIn or portfolio URL"
               value={formData.profileLink}
               onChange={handleInputChange}
             />
@@ -444,7 +469,7 @@ function JoinUs() {
               id="role"
               name="role"
               className={`w-full px-5 py-4 rounded-[11px] font-poppins text-sm md:text-base bg-[#1e1f23] text-[#8692A6] focus:outline-none focus:ring-0 focus:border-[#8692A6]/80 border-[.9px] ${
-                errors.lookingFor ? "border-red-500" : "border-[#8692A6]/40"
+                errors.role ? "border-red-500" : "border-[#8692A6]/40"
               }`}
               value={formData.role}
               onChange={handleInputChange}
@@ -471,7 +496,7 @@ function JoinUs() {
               id="source"
               name="source"
               className={`w-full px-5 py-4 rounded-[11px] font-poppins text-sm md:text-base bg-[#1e1f23] text-[#8692A6] focus:outline-none focus:ring-0 focus:border-[#8692A6]/80 border-[.9px] ${
-                errors.lookingFor ? "border-red-500" : "border-[#8692A6]/40"
+                errors.source ? "border-red-500" : "border-[#8692A6]/40"
               }`}
               value={formData.source}
               onChange={handleInputChange}
@@ -485,50 +510,10 @@ function JoinUs() {
               <p className="text-red-500 text-sm mt-1">{errors.source}</p>
             )}
           </div>
-          {/* 
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">
-              Upload your Resume (PDF only, max 5MB) *
-            </label>
-            <div className="flex items-center justify-center w-full">
-              <label
-                className={`w-full border-[.9px] border-dashed rounded-[11px] p-5 text-[#8692A6] flex justify-center items-center text-center bg-[#1e1f23] ${
-                  errors.file ? "border-red-500" : "border-[#8692A6]/40"
-                }`}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                  />
-                </svg>
-                <span className="mt-2 text-sm">
-                  {fileName ? fileName : "Upload PDF here"}
-                </span>
-                <input
-                  type="file"
-                  className="hidden"
-                  accept=".pdf"
-                  onChange={handleFileChange}
-                />
-              </label>
-            </div>
-            {fileError && (
-              <p className="text-red-500 text-sm mt-1">{fileError}</p>
-            )}
-          </div> */}
 
           <div>
             <label
-              htmlFor="profileLink"
+              htmlFor="resumeLink"
               className="block text-sm text-gray-400 mb-1"
             >
               Your Resume link *
@@ -538,13 +523,14 @@ function JoinUs() {
               id="resumeLink"
               name="resumeLink"
               className={`w-full px-5 py-4 rounded-[11px] font-poppins text-sm md:text-base bg-[#1e1f23] text-white placeholder-[#8692A6] focus:outline-none focus:ring-0 focus:border-[#8692A6]/80 border-[.9px] ${
-                errors.name ? "border-red-500" : "border-[#8692A6]/40"
+                errors.resumeLink ? "border-red-500" : "border-[#8692A6]/40"
               }`}
+              placeholder="Enter URL to your resume (Google Drive, Dropbox, etc.)"
               value={formData.resumeLink}
               onChange={handleInputChange}
             />
-            {errors.resuneLink && (
-              <p className="text-red-500 text-sm mt-1">{errors.resumeeLink}</p>
+            {errors.resumeLink && (
+              <p className="text-red-500 text-sm mt-1">{errors.resumeLink}</p>
             )}
           </div>
 
@@ -566,10 +552,10 @@ function JoinUs() {
             </button>
           </div>
         </form>
-        {alertpop == true ? (
+        {alertpop && (
           <div className="fixed inset-0 flex justify-center items-center">
-            <div className=" justify-items-center   flex gap-8 2xs:gap-2 rounded-lg px-4 py-4 2xs:px-2 2xs:py-2 bg-[#262626]  ">
-              <div className="h-[50px] w-[50px] xl:w-[50px] lg:w-[50px] sm:w-[50px]  xs:w-[50px] 2xs:w-[30px]">
+            <div className="justify-items-center flex gap-8 2xs:gap-2 rounded-lg px-4 py-4 2xs:px-2 2xs:py-2 bg-[#262626]">
+              <div className="h-[50px] w-[50px] xl:w-[50px] lg:w-[50px] sm:w-[50px] xs:w-[50px] 2xs:w-[30px]">
                 <img src={Frame} alt="Alert" className="pt-4" />
               </div>
               <div>
@@ -588,7 +574,7 @@ function JoinUs() {
                 </p>
               </div>
               <div
-                className="cursor-pointer bg-[#BAB5B5] rounded-[50%] h-[20px] p-2 w-[20px] flex justify-center items-center text-[#4F4F4F] "
+                className="cursor-pointer bg-[#BAB5B5] rounded-[50%] h-[20px] p-2 w-[20px] flex justify-center items-center text-[#4F4F4F]"
                 onClick={() => setAlertpop(false)}
               >
                 <p className="text-lg 2xs:text-xs items-center justify-center mt-[-2.5px]">
@@ -597,8 +583,6 @@ function JoinUs() {
               </div>
             </div>
           </div>
-        ) : (
-          ""
         )}
       </Container>
     </div>

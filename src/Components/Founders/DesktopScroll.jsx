@@ -67,27 +67,42 @@ const DesktopScroll = () => {
               </title>
               <meta
                 name="description"
-                content={`${activeFounder.name}, ${activeFounder.title} at Webortex. ${activeFounder.quote}`}
+                content="K Gnana Sekhar is the Founder and CEO of Webortex. Expert in design, development & marketing—crafting sleek websites and powerful apps. Passionate about innovation and turning ideas into reality. 'Nothing expensive under the power of creativity.'"
               />
+
               <meta
                 name="keywords"
-                content={`${activeFounder.name}, ${activeFounder.title}, Webortex, Web Development, Innovative Solutions, Digital Experiences, Technology, Software Development in Tirupati, Custom Software Development in Tirupati, E-commerce Web Development in Tirupati, Mobile App Development in Tirupati, UI/UX Design Services in Tirupati, Cloud Solutions in Tirupati, IT Consulting in Tirupati, Software Maintenance in Tirupati,Digital Transformation in Tirupati, Webortex Software Development Agency, Webortex Sisindri Singamsetti, Webortex Gnana Sekhar, Webortex Founders, Webortex Team, Webortex Services, Webortex Projects, Webortex Tharun A, Webortex Jayadeep Reddy, Webortex Ashok P, Webortex Sai Sandeep, Sisindri Singamsettis Webortex, sisitarak, sisi-tarak, sisi-tarakk, Webortex Founders Team, Sisindri Singamsetti Webortex COO, K Gnana Sekhar Webortex CEO, Tharun A Webortex CPO, Jayadeep Reddy Webortex CTO, Ashok Pemeram Webortex CIO, Sai Sandeep Webortex CLO`}
+                content="K Gnana Sekhar, Webortex Founder, Webortex CEO, Founder of Webortex, CEO of Webortex, Webortex Software Development Agency, Web Development in Tirupati, Custom Software in Tirupati, Mobile App Development Tirupati, UI/UX Design Tirupati, Cloud Solutions, Digital Transformation, Webortex Team, Sisindri Singamsetti, Tharun A, Jayadeep Reddy, Ashok P, Sai Sandeep"
               />
-              a
+
+              <meta name="author" content="K Gnana Sekhar" />
               <meta name="author" content="Sisindri Singamsetti" />
+
               <meta
                 property="og:title"
-                content={`${activeFounder.name} - ${activeFounder.title} at Webortex`}
+                content="K Gnana Sekhar – Founder and CEO at Webortex"
+              />
+              <meta
+                name="description"
+                content="K Gnana Sekhar is the Founder and CEO of Webortex. Expert in design, development & marketing—crafting sleek websites and powerful apps. Passionate about innovation and turning ideas into reality. ★ 'Nothing expensive under the power of creativity' – K Gnana Sekhar."
+              />
+
+              <meta
+                property="og:description"
+                content="K Gnana Sekhar, Founder and CEO of Webortex. Passionate about innovation and design. ★ 'Nothing expensive under the power of creativity' – K Gnana Sekhar."
               />
               <meta
                 property="og:description"
-                content={`${activeFounder.name}, ${activeFounder.title} at Webortex. ${activeFounder.quote}`}
+                content="Founder and CEO of Webortex. Expert in design, development & marketing. Passionate about innovation and turning ideas into reality. 'Nothing expensive under the power of creativity.'"
               />
               <meta property="og:type" content="profile" />
-              <meta property="og:url" content={activeFounder.src} />
+              <meta
+                property="og:url"
+                content="https://github.com/gnanaofficial"
+              />
               <meta
                 property="og:image"
-                content={`https://www.webortex.com/images/${activeFounder.image}.jpg`}
+                content="https://pub-092f205255e44a92ba44af43d1f03019.r2.dev/Founders/KGnanaSekhar.jpg"
               />
             </Helmet>
 

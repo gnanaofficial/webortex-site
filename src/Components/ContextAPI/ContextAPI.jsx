@@ -462,14 +462,14 @@ export class Provider extends Component {
         id: 1,
         image: foundersImages.gnana,
         name: "K Gnana Sekhar",
-        title: "Founder & CEO, Webortex",
+        title: "Webortex | Founder and CEO",
         quote: (
           <>
             Expert in design, development & marketing, crafting sleek websites &
             powerful apps. Passionate about innovation & turning ideas into
-            reality. <br />
-            "Nothing expensive under the power of creativity" –{" "}
-            <strong>K Gnana Sekhar</strong>.
+            reality. <br /> “Nothing is expensive under the power of
+            creativity.” —{" "}
+            <strong>K Gnana Sekhar</strong>
           </>
         ),
         src: "https://github.com/gnanaofficial",
